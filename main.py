@@ -1,10 +1,13 @@
+#!/usr/bin/env python3
+
+import parse
+import trackeresponse
 import random
-import socket
-import struct
 from urllib.parse import urlencode
 import requests
 import bencoding
 import parse
+import ipaddress
 
 path = './torrents/ubuntu-20.04.1-desktop-amd64.iso.torrent'
 
@@ -28,16 +31,40 @@ query = {
     'event': 'started'
 }
 
+# make request to tracker
 url = (torrentMetaData['announce']).decode('utf-8') + "?" + urlencode(query)
-print('Connecting to torrent tracker..........', url)
 res = requests.get(url)
-print(type(res.text), type(res.content))
+
+# decode the binary data and store the peerlist bytes
 data = bencoding.Decoder(res.content).decode()
 peerlist = data[b'peers']
-print(len(peerlist))
-print(type(data[b'peers']), data)
 
-offset = 0
-ip1 = struct.unpack_from("!i", peerlist, offset)[0]
-firstip = socket.inet_ntoa(struct.pack("!i", ip1))
-print(firstip)
+
+# offset = 0
+# ip1 = struct.unpack_from("!i", peerlist, offset)[0]
+# # firstip = socket.inet_ntoa(struct.pack("!i", ip1))
+# # print(firstip)
+# ip_list = []
+# for offset2 in range(0,12,6):
+#     unpacked_ip = struct.unpack_from("!i", peerlist, offset2)[0]
+#     dotted_ip = struct.pack('!i', unpacked_ip)
+#     ip_list.append(ipaddress.ip_address(dotted_ip))
+
+
+# for item in ip_list:
+#     print("from the loop", item)
+
+# ip2 = trackeresponse.parsebytestoip(ip1)
+# print("Ip from trackerresponse", ip2)
+
+# get the ip and ports from the bytes (first 4 bytes are ip and next 2 bytes are port)
+
+ipaddresslist = trackeresponse.parsebytestoip(peerlist)
+portslist = trackeresponse.parsebytestoport(peerlist)
+
+peerdict = dict()
+for i in range(len(ipaddresslist)):
+    peerdict[ipaddresslist[i]] = portslist[i]
+
+for key, value in peerdict.items():
+    print(key,":",value)
